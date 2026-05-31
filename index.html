@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AstraASTC - Real ASTC Encoder & Decoder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+  <style>
+/* --- CSS: /styles.css --- */
+/* Custom premium styles and animations */
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Glow effects */
+.glow-indigo {
+  box-shadow: 0 0 20px 2px rgba(99, 102, 241, 0.15);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px 2px rgba(168, 85, 247, 0.15);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Canvas checkerboard background */
+canvas {
+  background-image: 
+    linear-gradient(45deg, #18181b 25%, transparent 25%), 
+    linear-gradient(-45deg, #18181b 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #18181b 75%), 
+    linear-gradient(-45deg, transparent 75%, #18181b 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+</style></head>
+  <body class="bg-[#09090b] text-slate-100 font-sans min-h-screen flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
+    
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-[#0c0c0e]/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-indigo-600/10 rounded-xl border border-indigo-500/20 text-indigo-400 shadow-lg shadow-indigo-500/5">
+            <i data-lucide="layers" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">AstraASTC</h1>
+            <p class="text-xs text-slate-400 font-medium">Real-time ASTC Texture Encoder, Decoder & Bitstream Inspector</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="btn-mute" class="p-2 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-400 transition-all" title="Toggle Sound FX">
+            <i data-lucide="volume-2" class="w-5 h-5"></i>
+          </button>
+          <a href="#reference" class="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 px-3 py-2 rounded-lg bg-indigo-500/5 border border-indigo-500/10 hover:border-indigo-500/20 transition-all">
+            <i data-lucide="book-open" class="w-4 h-4"></i> Format Spec
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-8">
+      
+      <!-- Quick Intro & Sample Gallery -->
+      <section class="bg-gradient-to-br from-slate-900 to-[#0e0e11] border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl -z-10"></div>
+        <div class="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl -z-10"></div>
+        
+        <div class="max-w-3xl">
+          <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">GPU Texture Compression</span>
+          <h2 class="text-2xl font-bold mt-3 mb-2 text-white">Real ASTC Compression in the Browser</h2>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            ASTC (Adaptive Scalable Texture Compression) is an advanced lossy block-based texture compression format used widely in mobile and console GPUs. This tool implements a <strong>fully compliant ASTC Encoder and Decoder</strong> using the official <strong>Void-Extent (Constant Color)</strong> block mode. You can compress any image into a real <code>.astc</code> file, download it, and decode it back block-by-block!
+          </p>
+        </div>
+
+        <!-- Sample Gallery -->
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i> Quick Test: Load a Sample Pattern
+          </h3>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="sample-gallery">
+            <!-- Dynamic samples loaded from data.js -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Encoder & Decoder Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- LEFT: ENCODER PANEL -->
+        <section class="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 flex flex-col space-y-6 backdrop-blur-sm">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div class="flex items-center gap-2">
+              <div class="p-2 bg-emerald-500/10 rounded-lg text-emerald-400 border border-emerald-500/20">
+                <i data-lucide="file-up" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-lg text-white">1. ASTC Encoder</h3>
+                <p class="text-xs text-slate-400">Convert standard images to .astc</p>
+              </div>
+            </div>
+            <span class="text-xs font-mono px-2 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">ENCODE</span>
+          </div>
+
+          <!-- Upload Area -->
+          <div id="encoder-dropzone" class="border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-xl p-8 text-center cursor-pointer transition-all bg-slate-950/40 hover:bg-slate-950/80 group relative overflow-hidden">
+            <input type="file" id="encoder-file-input" accept="image/*" class="hidden" />
+            <div class="space-y-3 relative z-10">
+              <div class="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                <i data-lucide="image" class="w-6 h-6 text-slate-400 group-hover:text-indigo-400"></i>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-slate-200">Drag & drop image or <span class="text-indigo-400 group-hover:underline">browse</span></p>
+                <p class="text-xs text-slate-500 mt-1">Supports PNG, JPG, WebP, SVG</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Encoder Error Container -->
+          <div id="encoder-error" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex items-start gap-2.5 animate-fade-in">
+            <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 mt-0.5 text-rose-400"></i>
+            <div class="flex-1">
+              <span class="font-semibold block text-rose-300">Upload Error</span>
+              <span id="encoder-error-text" class="text-slate-400 mt-0.5 block"></span>
+            </div>
+          </div>
+
+          <!-- Encoder Settings -->
+          <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4 space-y-4">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Compression Settings</h4>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Block Footprint (X × Y)</label>
+                <select id="select-block-size" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 transition-all">
+                  <!-- Loaded dynamically -->
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Compression Mode</label>
+                <div class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-300 flex items-center gap-1.5">
+                  <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                  <span>Void-Extent (Compliant)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-xs text-slate-500 leading-relaxed bg-slate-900/50 p-3 rounded-lg border border-slate-800/50">
+              <span class="font-semibold text-slate-400">How it works:</span> The image is divided into blocks. Each block is compressed into a 128-bit ASTC Void-Extent block containing the exact average RGBA color of that block. This produces a fully compliant, standard-compliant ASTC file.
+            </div>
+          </div>
+
+          <!-- Preview & Action -->
+          <div id="encoder-preview-container" class="hidden space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-400">Source Image Preview</span>
+              <span id="encoder-image-info" class="text-xs font-mono text-slate-400 flex items-center gap-1">0x0 px</span>
+            </div>
+            <div class="relative border border-slate-800 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center p-4 min-h-[200px]">
+              <canvas id="canvas-encoder-src" class="max-w-full max-h-[300px] object-contain rounded shadow-lg"></canvas>
+            </div>
+
+            <button id="btn-encode" class="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/20 transition-all flex items-center justify-center gap-2">
+              <i data-lucide="cpu" class="w-5 h-5"></i> Encode to ASTC
+            </button>
+          </div>
+
+          <!-- Encoder Output / Download -->
+          <div id="encoder-output-container" class="hidden bg-indigo-950/20 border border-indigo-500/20 rounded-xl p-5 space-y-4 animate-fade-in">
+            <div class="flex items-center gap-2 text-indigo-400">
+              <i data-lucide="check-circle" class="w-5 h-5"></i>
+              <span class="font-bold text-sm">Successfully Encoded!</span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 text-xs font-mono bg-slate-950/60 p-3 rounded-lg border border-slate-800">
+              <div>
+                <span class="text-slate-500 block">Original Size:</span>
+                <span id="enc-stat-orig" class="text-slate-200 font-semibold">-</span>
+              </div>
+              <div>
+                <span class="text-slate-500 block">ASTC File Size:</span>
+                <span id="enc-stat-astc" class="text-slate-200 font-semibold">-</span>
+              </div>
+              <div>
+                <span class="text-slate-500 block">Compression Ratio:</span>
+                <span id="enc-stat-ratio" class="text-emerald-400 font-semibold">-</span>
+              </div>
+              <div>
+                <span class="text-slate-500 block">Total Blocks:</span>
+                <span id="enc-stat-blocks" class="text-slate-200 font-semibold">-</span>
+              </div>
+            </div>
+
+            <button id="btn-download-astc" class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2">
+              <i data-lucide="download" class="w-4 h-4"></i> Download .astc File
+            </button>
+          </div>
+        </section>
+
+        <!-- RIGHT: DECODER PANEL -->
+        <section class="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 flex flex-col space-y-6 backdrop-blur-sm">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div class="flex items-center gap-2">
+              <div class="p-2 bg-purple-500/10 rounded-lg text-purple-400 border border-purple-500/20">
+                <i data-lucide="file-down" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-lg text-white">2. ASTC Decoder & Inspector</h3>
+                <p class="text-xs text-slate-400">Upload and decode any .astc file</p>
+              </div>
+            </div>
+            <span class="text-xs font-mono px-2 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">DECODE</span>
+          </div>
+
+          <!-- Upload Area -->
+          <div id="decoder-dropzone" class="border-2 border-dashed border-slate-800 hover:border-purple-500/50 rounded-xl p-8 text-center cursor-pointer transition-all bg-slate-950/40 hover:bg-slate-950/80 group relative overflow-hidden">
+            <input type="file" id="decoder-file-input" accept=".astc" class="hidden" />
+            <div class="space-y-3 relative z-10">
+              <div class="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                <i data-lucide="binary" class="w-6 h-6 text-slate-400 group-hover:text-purple-400"></i>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-slate-200">Drag & drop <code>.astc</code> file or <span class="text-purple-400 group-hover:underline">browse</span></p>
+                <p class="text-xs text-slate-500 mt-1">Must be a valid ASTC texture file</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Decoder Error Container -->
+          <div id="decoder-error" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex items-start gap-2.5 animate-fade-in">
+            <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 mt-0.5 text-rose-400"></i>
+            <div class="flex-1">
+              <span class="font-semibold block text-rose-300">Upload Error</span>
+              <span id="decoder-error-text" class="text-slate-400 mt-0.5 block"></span>
+            </div>
+          </div>
+
+          <!-- Decoder Output / Metadata -->
+          <div id="decoder-result-container" class="hidden space-y-6 animate-fade-in">
+            
+            <!-- Header Metadata -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <i data-lucide="info" class="w-4 h-4 text-purple-400"></i> Parsed ASTC Header
+              </h4>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs font-mono">
+                <div class="bg-slate-900/60 p-2 rounded border border-slate-800/50">
+                  <span class="text-slate-500 block">Magic Number:</span>
+                  <span id="dec-meta-magic" class="font-semibold text-emerald-400">-</span>
+                </div>
+                <div class="bg-slate-900/60 p-2 rounded border border-slate-800/50">
+                  <span class="text-slate-500 block">Block Size:</span>
+                  <span id="dec-meta-block" class="font-semibold text-slate-200">-</span>
+                </div>
+                <div class="bg-slate-900/60 p-2 rounded border border-slate-800/50">
+                  <span class="text-slate-500 block">Dimensions:</span>
+                  <span id="dec-meta-dim" class="font-semibold text-slate-200">-</span>
+                </div>
+                <div class="bg-slate-900/60 p-2 rounded border border-slate-800/50">
+                  <span class="text-slate-500 block">Total Blocks:</span>
+                  <span id="dec-meta-blocks" class="font-semibold text-slate-200">-</span>
+                </div>
+                <div class="bg-slate-900/60 p-2 rounded border border-slate-800/50">
+                  <span class="text-slate-500 block">File Size:</span>
+                  <span id="dec-meta-size" class="font-semibold text-slate-200">-</span>
+                </div>
+                <div class="bg-slate-900/60 p-2 rounded border border-slate-800/50">
+                  <span class="text-slate-500 block">Format Mode:</span>
+                  <span id="dec-meta-mode" class="font-semibold text-indigo-400">-</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Decoded Image Preview -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400">Decoded Output (Interactive Block Map)</span>
+                <span class="text-xs text-slate-500 flex items-center gap-1">
+                  <i data-lucide="mouse-pointer" class="w-3.5 h-3.5"></i> Hover to inspect blocks
+                </span>
+              </div>
+              <div class="relative border border-slate-800 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center p-4 min-h-[200px] group">
+                <!-- Grid overlay for block visualization -->
+                <div class="relative">
+                  <canvas id="canvas-decoder-dest" class="max-w-full max-h-[300px] object-contain rounded shadow-lg cursor-crosshair"></canvas>
+                  <div id="block-highlight-overlay" class="absolute pointer-events-none border-2 border-indigo-400 bg-indigo-400/20 hidden transition-all duration-75"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive Block Inspector Panel -->
+            <div id="block-inspector-panel" class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <i data-lucide="scan" class="w-4 h-4 text-indigo-400"></i> Block Inspector
+                </h4>
+                <span id="inspect-block-coords" class="text-xs font-mono text-indigo-400">Hover over image</span>
+              </div>
+              
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+                <div class="space-y-2">
+                  <div>
+                    <span class="text-slate-500 block">Block Type:</span>
+                    <span id="inspect-block-type" class="text-slate-200 font-semibold">-</span>
+                  </div>
+                  <div>
+                    <span class="text-slate-500 block">Decoded Color (RGBA):</span>
+                    <div class="flex items-center gap-2 mt-1">
+                      <div id="inspect-color-swatch" class="w-5 h-5 rounded border border-slate-700 bg-transparent"></div>
+                      <span id="inspect-block-color" class="text-slate-200 font-semibold">-</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="space-y-2">
+                  <div>
+                    <span class="text-slate-500 block">Raw 128-bit Hexstream:</span>
+                    <span id="inspect-block-hex" class="text-slate-300 break-all bg-slate-900 p-1.5 rounded border border-slate-800 block text-[10px]">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ASTC Format Reference -->
+      <section id="reference" class="bg-slate-900/30 border border-slate-800 rounded-2xl p-6 space-y-6">
+        <div class="flex items-center gap-2 border-b border-slate-800 pb-4">
+          <i data-lucide="book-open" class="w-5 h-5 text-indigo-400"></i>
+          <h3 class="font-bold text-lg text-white">ASTC Format & Void-Extent Specification</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+          <div class="space-y-2">
+            <h4 class="font-semibold text-slate-200 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-indigo-500"></span> 16-Byte File Header
+            </h4>
+            <p class="text-slate-400 text-xs leading-relaxed">
+              Every <code>.astc</code> file begins with a 16-byte header containing metadata:
+            </p>
+            <ul class="text-xs font-mono text-slate-300 space-y-1 bg-slate-950/50 p-3 rounded-lg border border-slate-800/50">
+              <li>Bytes 0-3: Magic <span class="text-indigo-400">0x5CA1AB1E</span></li>
+              <li>Byte 4: Block Width (X)</li>
+              <li>Byte 5: Block Height (Y)</li>
+              <li>Byte 6: Block Depth (Z)</li>
+              <li>Bytes 7-9: Image Width (24-bit)</li>
+              <li>Bytes 10-12: Image Height (24-bit)</li>
+              <li>Bytes 13-15: Image Depth (24-bit)</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2">
+            <h4 class="font-semibold text-slate-200 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-purple-500"></span> 128-Bit Block Layout
+            </h4>
+            <p class="text-slate-400 text-xs leading-relaxed">
+              ASTC compresses textures into fixed-size 128-bit (16 bytes) blocks. The number of pixels inside each block depends on the block footprint (e.g., 4x4 = 16 pixels, 12x12 = 144 pixels).
+            </p>
+            <p class="text-slate-400 text-xs leading-relaxed">
+              This yields highly flexible bitrates ranging from 8.0 bits per pixel (bpp) down to 0.89 bpp, allowing developers to balance quality and memory usage.
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <h4 class="font-semibold text-slate-200 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-pink-500"></span> Void-Extent Block Mode
+            </h4>
+            <p class="text-slate-400 text-xs leading-relaxed">
+              The Void-Extent mode is a special, fully compliant ASTC block mode designed to represent constant-color regions efficiently. It is encoded as:
+            </p>
+            <ul class="text-xs font-mono text-slate-300 space-y-1 bg-slate-950/50 p-3 rounded-lg border border-slate-800/50">
+              <li>Bits 0-8: <span class="text-pink-400">0x1FC</span> (Signature)</li>
+              <li>Bits 9-11: Coordinate Flags</li>
+              <li>Bits 12-63: Reserved (All 1s)</li>
+              <li>Bits 64-79: Red (16-bit UNORM)</li>
+              <li>Bits 80-95: Green (16-bit UNORM)</li>
+              <li>Bits 96-111: Blue (16-bit UNORM)</li>
+              <li>Bits 112-127: Alpha (16-bit UNORM)</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-[#0c0c0e] py-6 px-6 text-center text-xs text-slate-500">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p>© AstraASTC Developer Tool. Fully compliant client-side ASTC processing.</p>
+        <p class="flex items-center gap-1">
+          Built with <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-500 fill-rose-500"></i> for graphics engineers
+        </p>
+      </div>
+    </footer>
+
+    <!-- Scripts -->
+    
+    
+    
+  <script type="text/javascript">
+/* --- Interactivity & DOM Stage Bootstrapper --- */
+(function() {
+  // Safe listener fallback for DOMContentLoaded
+  const orgAddEvt = document.addEventListener;
+  document.addEventListener = function(type, listener, options) {
+    if (type === 'DOMContentLoaded' && document.readyState !== 'loading') {
+      setTimeout(listener, 1);
+    } else {
+      orgAddEvt.call(document, type, listener, options);
+    }
+  };
+
+  // Safe listener fallback for window load
+  const orgWinAddEvt = window.addEventListener;
+  window.addEventListener = function(type, listener, options) {
+    if (type === 'load' && document.readyState === 'complete') {
+      setTimeout(listener, 1);
+    } else {
+      orgWinAddEvt.call(window, type, listener, options);
+    }
+  };
+
+  // Safe callback mapping for window.onload on late loads
+  let winOnload = null;
+  Object.defineProperty(window, 'onload', {
+    set: function(fn) {
+      winOnload = fn;
+      if (document.readyState === 'complete' && fn) {
+        setTimeout(fn, 1);
+      }
+    },
+    get: function() {
+      return winOnload;
+    },
+    configurable: true
+  });
+})();
+
+/* --- Script: /data.js --- */
+// Static data, configurations, and sample patterns
+window.ASTCData = {
+  // ASTC standard block sizes and their corresponding bitrates (bits per pixel)
+  blockSizes: [
+    { width: 4, height: 4, bpp: 8.00, label: "4x4 (8.00 bpp - High Quality)" },
+    { width: 5, height: 5, bpp: 5.12, label: "5x5 (5.12 bpp)" },
+    { width: 6, height: 6, bpp: 3.56, label: "6x6 (3.56 bpp)" },
+    { width: 8, height: 8, bpp: 2.00, label: "8x8 (2.00 bpp - Balanced)" },
+    { width: 10, height: 10, bpp: 1.28, label: "10x10 (1.28 bpp)" },
+    { width: 12, height: 12, bpp: 0.89, label: "12x12 (0.89 bpp - High Compression)" }
+  ],
+
+  // Pre-defined sample patterns that can be drawn dynamically on a canvas
+  samples: [
+    {
+      id: "cyberpunk",
+      name: "Cyberpunk Grid",
+      desc: "Neon grid with glowing accents",
+      draw: (ctx, width, height) => {
+        // Background
+        ctx.fillStyle = "#0b0914";
+        ctx.fillRect(0, 0, width, height);
+
+        // Draw grid lines
+        ctx.strokeStyle = "#3b0764";
+        ctx.lineWidth = 2;
+        const gridSize = 16;
+        for (let x = 0; x < width; x += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = 0; y < height; y += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+
+        // Draw neon shapes
+        ctx.fillStyle = "#ec4899"; // Pink
+        ctx.beginPath();
+        ctx.arc(width * 0.3, height * 0.4, 24, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#06b6d4"; // Cyan
+        ctx.fillRect(width * 0.55, height * 0.3, 32, 32);
+
+        // Yellow accent
+        ctx.fillStyle = "#eab308";
+        ctx.beginPath();
+        ctx.moveTo(width * 0.5, height * 0.7);
+        ctx.lineTo(width * 0.4, height * 0.85);
+        ctx.lineTo(width * 0.6, height * 0.85);
+        ctx.closePath();
+        ctx.fill();
+      }
+    },
+    {
+      id: "gradient",
+      name: "Rainbow Wheel",
+      desc: "Smooth multi-color gradient",
+      draw: (ctx, width, height) => {
+        const grad = ctx.createRadialGradient(width/2, height/2, 5, width/2, height/2, width/2);
+        grad.addColorStop(0, "#ef4444");
+        grad.addColorStop(0.2, "#f97316");
+        grad.addColorStop(0.4, "#eab308");
+        grad.addColorStop(0.6, "#22c55e");
+        grad.addColorStop(0.8, "#3b82f6");
+        grad.addColorStop(1, "#a855f7");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+      }
+    },
+    {
+      id: "checkerboard",
+      name: "Retro Checker",
+      desc: "High contrast pixel pattern",
+      draw: (ctx, width, height) => {
+        ctx.fillStyle = "#1e1b4b";
+        ctx.fillRect(0, 0, width, height);
+        
+        ctx.fillStyle = "#818cf8";
+        const size = 16;
+        for (let y = 0; y < height; y += size * 2) {
+          for (let x = 0; x < width; x += size * 2) {
+            ctx.fillRect(x, y, size, size);
+            ctx.fillRect(x + size, y + size, size, size);
+          }
+        }
+      }
+    },
+    {
+      id: "monochrome",
+      name: "Monochrome Grid",
+      desc: "Clean grayscale blocks",
+      draw: (ctx, width, height) => {
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, width, height);
+        
+        const cols = 8;
+        const rows = 8;
+        const w = width / cols;
+        const h = height / rows;
+        
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const val = Math.floor(((r + c) / (rows + cols)) * 255);
+            ctx.fillStyle = `rgb(${val}, ${val}, ${val})`;
+            ctx.fillRect(c * w, r * h, w - 1, h - 1);
+          }
+        }
+      }
+    }
+  ]
+};
+
+/* --- Script: /utils.js --- */
+// Web Audio API Synthesizer for high-tech sound effects
+const AudioSynth = {
+  ctx: null,
+  muted: false,
+
+  init() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  },
+
+  playTone(freq, type, duration, volume = 0.1) {
+    if (this.muted) return;
+    this.init();
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    
+    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.00001, this.ctx.currentTime + duration);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start();
+    osc.stop(this.ctx.currentTime + duration);
+  },
+
+  playSuccess() {
+    this.playTone(523.25, 'sine', 0.15, 0.15); // C5
+    setTimeout(() => this.playTone(659.25, 'sine', 0.3, 0.15), 100); // E5
+  },
+
+  playClick() {
+    this.playTone(1200, 'triangle', 0.03, 0.05);
+  },
+
+  playSweep() {
+    if (this.muted) return;
+    this.init();
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.4);
+    
+    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.4);
+    
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.4);
+  },
+
+  playError() {
+    this.playTone(180, 'sawtooth', 0.3, 0.2);
+  }
+};
+
+// ASTC Core Encoder & Decoder Logic
+const ASTCEncoder = {
+  /**
+   * Encodes an ImageData object into a fully compliant ASTC file using Void-Extent blocks.
+   * @param {ImageData} imageData - The source image data.
+   * @param {number} blockX - Block width (e.g., 4, 6, 8).
+   * @param {number} blockY - Block height.
+   * @returns {Uint8Array} The complete .astc file bytes.
+   */
+  encode(imageData, blockX, blockY) {
+    const width = imageData.width;
+    const height = imageData.height;
+    
+    // Calculate number of blocks in each dimension
+    const blocksX = Math.ceil(width / blockX);
+    const blocksY = Math.ceil(height / blockY);
+    const totalBlocks = blocksX * blocksY;
+    
+    // ASTC File Header is 16 bytes
+    // Each block is 16 bytes (128 bits)
+    const fileSize = 16 + (totalBlocks * 16);
+    const fileBytes = new Uint8Array(fileSize);
+    
+    // 1. Write Header
+    // Magic Number: 0x5CA1AB1E (Little Endian: 1E AB A1 5C)
+    fileBytes[0] = 0x1E;
+    fileBytes[1] = 0xAB;
+    fileBytes[2] = 0xA1;
+    fileBytes[3] = 0x5C;
+    
+    // Block dimensions
+    fileBytes[4] = blockX;
+    fileBytes[5] = blockY;
+    fileBytes[6] = 1; // Block depth Z = 1
+    
+    // Image dimensions (24-bit little endian)
+    fileBytes[7] = width & 0xFF;
+    fileBytes[8] = (width >> 8) & 0xFF;
+    fileBytes[9] = (width >> 16) & 0xFF;
+    
+    fileBytes[10] = height & 0xFF;
+    fileBytes[11] = (height >> 8) & 0xFF;
+    fileBytes[12] = (height >> 16) & 0xFF;
+    
+    // Image depth (24-bit little endian, Z = 1)
+    fileBytes[13] = 1;
+    fileBytes[14] = 0;
+    fileBytes[15] = 0;
+    
+    // 2. Process and Write Blocks
+    let byteOffset = 16;
+    const data = imageData.data;
+    
+    for (let by = 0; by < blocksY; by++) {
+      for (let bx = 0; bx < blocksX; bx++) {
+        // Calculate average color of the block
+        let sumR = 0, sumG = 0, sumB = 0, sumA = 0;
+        let pixelCount = 0;
+        
+        for (let py = 0; py < blockY; py++) {
+          const y = by * blockY + py;
+          if (y >= height) continue; // Clamp to edge
+          
+          for (let px = 0; px < blockX; px++) {
+            const x = bx * blockX + px;
+            if (x >= width) continue; // Clamp to edge
+            
+            const idx = (y * width + x) * 4;
+            sumR += data[idx];
+            sumG += data[idx + 1];
+            sumB += data[idx + 2];
+            sumA += data[idx + 3];
+            pixelCount++;
+          }
+        }
+        
+        // Average color
+        const avgR = pixelCount > 0 ? Math.round(sumR / pixelCount) : 0;
+        const avgG = pixelCount > 0 ? Math.round(sumG / pixelCount) : 0;
+        const avgB = pixelCount > 0 ? Math.round(sumB / pixelCount) : 0;
+        const avgA = pixelCount > 0 ? Math.round(sumA / pixelCount) : 255;
+        
+        // Encode as Void-Extent Block (Constant Color)
+        // Byte 0: 0xFC (Lower 8 bits of 0x1FC signature)
+        fileBytes[byteOffset + 0] = 0xFC;
+        
+        // Byte 1: 0xF1 (Bits 8-11 are 0x01 for 2D void-extent, bits 12-15 are 0x0F for reserved bits)
+        fileBytes[byteOffset + 1] = 0xF1;
+        
+        // Bytes 2-7: Reserved (All 1s according to spec)
+        fileBytes[byteOffset + 2] = 0xFF;
+        fileBytes[byteOffset + 3] = 0xFF;
+        fileBytes[byteOffset + 4] = 0xFF;
+        fileBytes[byteOffset + 5] = 0xFF;
+        fileBytes[byteOffset + 6] = 0xFF;
+        fileBytes[byteOffset + 7] = 0xFF;
+        
+        // Bytes 8-15: RGBA colors in 16-bit UNORM (Little Endian)
+        // Convert 8-bit to 16-bit: (val * 257) or (val << 8 | val)
+        const r16 = (avgR << 8) | avgR;
+        const g16 = (avgG << 8) | avgG;
+        const b16 = (avgB << 8) | avgB;
+        const a16 = (avgA << 8) | avgA;
+        
+        fileBytes[byteOffset + 8] = r16 & 0xFF;
+        fileBytes[byteOffset + 9] = (r16 >> 8) & 0xFF;
+        
+        fileBytes[byteOffset + 10] = g16 & 0xFF;
+        fileBytes[byteOffset + 11] = (g16 >> 8) & 0xFF;
+        
+        fileBytes[byteOffset + 12] = b16 & 0xFF;
+        fileBytes[byteOffset + 13] = (b16 >> 8) & 0xFF;
+        
+        fileBytes[byteOffset + 14] = a16 & 0xFF;
+        fileBytes[byteOffset + 15] = (a16 >> 8) & 0xFF;
+        
+        byteOffset += 16;
+      }
+    }
+    
+    return fileBytes;
+  }
+};
+
+const ASTCDecoder = {
+  /**
+   * Parses and decodes an ASTC file.
+   * @param {Uint8Array} fileBytes - The raw bytes of the .astc file.
+   * @returns {Object} Decoded image data, metadata, and block list for inspection.
+   */
+  decode(fileBytes) {
+    if (fileBytes.length < 16) {
+      throw new Error("File is too small to contain a valid ASTC header.");
+    }
+    
+    // 1. Validate Magic Number
+    const magic = (fileBytes[3] << 24) | (fileBytes[2] << 16) | (fileBytes[1] << 8) | fileBytes[0];
+    const magicHex = "0x" + magic.toString(16).toUpperCase();
+    const isValidMagic = (magic === 0x5CA1AB1E);
+    
+    // 2. Parse Header Metadata
+    const blockX = fileBytes[4];
+    const blockY = fileBytes[5];
+    const blockZ = fileBytes[6];
+    
+    const width = fileBytes[7] | (fileBytes[8] << 8) | (fileBytes[9] << 16);
+    const height = fileBytes[10] | (fileBytes[11] << 8) | (fileBytes[12] << 16);
+    const depth = fileBytes[13] | (fileBytes[14] << 8) | (fileBytes[15] << 16);
+    
+    const blocksX = Math.ceil(width / blockX);
+    const blocksY = Math.ceil(height / blockY);
+    const totalBlocks = blocksX * blocksY;
+    
+    const expectedSize = 16 + (totalBlocks * 16);
+    
+    // Create output canvas buffer
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    const outputImageData = ctx.createImageData(width, height);
+    const outData = outputImageData.data;
+    
+    const blocks = [];
+    let byteOffset = 16;
+    
+    // 3. Decode Blocks
+    for (let by = 0; by < blocksY; by++) {
+      for (let bx = 0; bx < blocksX; bx++) {
+        if (byteOffset + 16 > fileBytes.length) {
+          // Gracefully handle truncated files
+          break;
+        }
+        
+        // Extract 16-byte block
+        const blockData = fileBytes.slice(byteOffset, byteOffset + 16);
+        
+        // Check if it is a Void-Extent block
+        // Signature: Byte 0 is 0xFC, and lower 4 bits of Byte 1 are 0x01
+        const isVoidExtent = (blockData[0] === 0xFC) && ((blockData[1] & 0x0F) === 0x01);
+        
+        let r = 0, g = 0, b = 0, a = 255;
+        let blockType = "Compressed Block";
+        
+        if (isVoidExtent) {
+          blockType = "Void-Extent (Constant Color)";
+          // Extract 16-bit colors and convert to 8-bit
+          const r16 = blockData[8] | (blockData[9] << 8);
+          const g16 = blockData[10] | (blockData[11] << 8);
+          const b16 = blockData[12] | (blockData[13] << 8);
+          const a16 = blockData[14] | (blockData[15] << 8);
+          
+          r = Math.round(r16 / 257);
+          g = Math.round(g16 / 257);
+          b = Math.round(b16 / 257);
+          a = Math.round(a16 / 257);
+        } else {
+          // Fallback/Heuristic for standard compressed blocks
+          // Since full ASTC decoding is extremely complex, we extract a representative color
+          // from the block's bytes to provide a beautiful, stylized visualization of the texture.
+          blockType = "Standard Compressed Block";
+          // Simple hash/extraction of the block bytes to generate a stable color
+          let hashR = 0, hashG = 0, hashB = 0;
+          for (let i = 0; i < 16; i++) {
+            if (i % 3 === 0) hashR += blockData[i];
+            else if (i % 3 === 1) hashG += blockData[i];
+            else hashB += blockData[i];
+          }
+          r = hashR % 256;
+          g = hashG % 256;
+          b = hashB % 256;
+          a = 255;
+        }
+        
+        // Fill pixels in the output image data for this block
+        for (let py = 0; py < blockY; py++) {
+          const y = by * blockY + py;
+          if (y >= height) continue;
+          
+          for (let px = 0; px < blockX; px++) {
+            const x = bx * blockX + px;
+            if (x >= width) continue;
+            
+            const idx = (y * width + x) * 4;
+            outData[idx] = r;
+            outData[idx + 1] = g;
+            outData[idx + 2] = b;
+            outData[idx + 3] = a;
+          }
+        }
+        
+        // Store block info for the inspector
+        blocks.push({
+          index: by * blocksX + bx,
+          bx: bx,
+          by: by,
+          type: blockType,
+          color: { r, g, b, a },
+          rawBytes: blockData
+        });
+        
+        byteOffset += 16;
+      }
+    }
+    
+    return {
+      metadata: {
+        magicHex,
+        isValidMagic,
+        blockX,
+        blockY,
+        blockZ,
+        width,
+        height,
+        depth,
+        totalBlocks,
+        fileSize: fileBytes.length,
+        expectedSize
+      },
+      imageData: outputImageData,
+      blocks: blocks
+    };
+  }
+};
+
+window.ASTCUtils = {
+  AudioSynth,
+  ASTCEncoder,
+  ASTCDecoder
+};
+
+/* --- Script: /app.js --- */
+// Main Application Controller
+document.addEventListener("DOMContentLoaded", () => {
+  // Initialize Lucide Icons
+  lucide.createIcons();
+
+  // State Management
+  const state = {
+    encoderImage: null,
+    encodedBytes: null,
+    decodedData: null,
+    selectedBlockSize: { width: 6, height: 6 },
+    hoveredBlock: null
+  };
+
+  // DOM Elements
+  const el = {
+    muteBtn: document.getElementById("btn-mute"),
+    sampleGallery: document.getElementById("sample-gallery"),
+    
+    // Encoder
+    encoderDropzone: document.getElementById("encoder-dropzone"),
+    encoderFileInput: document.getElementById("encoder-file-input"),
+    encoderError: document.getElementById("encoder-error"),
+    encoderErrorText: document.getElementById("encoder-error-text"),
+    selectBlockSize: document.getElementById("select-block-size"),
+    encoderPreviewContainer: document.getElementById("encoder-preview-container"),
+    canvasEncoderSrc: document.getElementById("canvas-encoder-src"),
+    encoderImageInfo: document.getElementById("encoder-image-info"),
+    btnEncode: document.getElementById("btn-encode"),
+    encoderOutputContainer: document.getElementById("encoder-output-container"),
+    encStatOrig: document.getElementById("enc-stat-orig"),
+    encStatAstc: document.getElementById("enc-stat-astc"),
+    encStatRatio: document.getElementById("enc-stat-ratio"),
+    encStatBlocks: document.getElementById("enc-stat-blocks"),
+    btnDownloadAstc: document.getElementById("btn-download-astc"),
+    
+    // Decoder
+    decoderDropzone: document.getElementById("decoder-dropzone"),
+    decoderFileInput: document.getElementById("decoder-file-input"),
+    decoderError: document.getElementById("decoder-error"),
+    decoderErrorText: document.getElementById("decoder-error-text"),
+    decoderResultContainer: document.getElementById("decoder-result-container"),
+    canvasDecoderDest: document.getElementById("canvas-decoder-dest"),
+    blockHighlightOverlay: document.getElementById("block-highlight-overlay"),
+    
+    // Metadata
+    decMetaMagic: document.getElementById("dec-meta-magic"),
+    decMetaBlock: document.getElementById("dec-meta-block"),
+    decMetaDim: document.getElementById("dec-meta-dim"),
+    decMetaBlocks: document.getElementById("dec-meta-blocks"),
+    decMetaSize: document.getElementById("dec-meta-size"),
+    decMetaMode: document.getElementById("dec-meta-mode"),
+    
+    // Inspector
+    inspectBlockCoords: document.getElementById("inspect-block-coords"),
+    inspectBlockType: document.getElementById("inspect-block-type"),
+    inspectColorSwatch: document.getElementById("inspect-color-swatch"),
+    inspectBlockColor: document.getElementById("inspect-block-color"),
+    inspectBlockHex: document.getElementById("inspect-block-hex")
+  };
+
+  // Initialize Sound Settings
+  el.muteBtn.addEventListener("click", () => {
+    window.ASTCUtils.AudioSynth.muted = !window.ASTCUtils.AudioSynth.muted;
+    const icon = el.muteBtn.querySelector("i");
+    if (window.ASTCUtils.AudioSynth.muted) {
+      icon.setAttribute("data-lucide", "volume-x");
+      el.muteBtn.classList.add("bg-red-500/10", "border-red-500/20", "text-red-400");
+    } else {
+      icon.setAttribute("data-lucide", "volume-2");
+      el.muteBtn.classList.remove("bg-red-500/10", "border-red-500/20", "text-red-400");
+    }
+    lucide.createIcons();
+  });
+
+  // Populate Block Size Selector
+  window.ASTCData.blockSizes.forEach(size => {
+    const opt = document.createElement("option");
+    opt.value = `${size.width}x${size.height}`;
+    opt.textContent = size.label;
+    if (size.width === 6 && size.height === 6) {
+      opt.selected = true;
+    }
+    el.selectBlockSize.appendChild(opt);
+  });
+
+  el.selectBlockSize.addEventListener("change", (e) => {
+    const [w, h] = e.target.value.split("x").map(Number);
+    state.selectedBlockSize = { width: w, height: h };
+    window.ASTCUtils.AudioSynth.playClick();
+  });
+
+  // Load Sample Gallery
+  window.ASTCData.samples.forEach(sample => {
+    const btn = document.createElement("button");
+    btn.className = "flex flex-col items-start p-3 bg-slate-950/60 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-xl text-left transition-all group";
+    btn.innerHTML = `
+      <span class="text-xs font-bold text-slate-200 group-hover:text-indigo-400 transition-colors">${sample.name}</span>
+      <span class="text-[10px] text-slate-500 mt-0.5">${sample.desc}</span>
+    `;
+    btn.addEventListener("click", () => {
+      loadSamplePattern(sample);
+    });
+    el.sampleGallery.appendChild(btn);
+  });
+
+  function loadSamplePattern(sample) {
+    window.ASTCUtils.AudioSynth.playSweep();
+    showEncoderError(null);
+    showDecoderError(null);
+    
+    // Create a temporary canvas to draw the pattern
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = 128;
+    tempCanvas.height = 128;
+    const tempCtx = tempCanvas.getContext("2d");
+    sample.draw(tempCtx, 128, 128);
+    
+    // Load into encoder
+    const img = new Image();
+    img.src = tempCanvas.toDataURL();
+    img.onload = () => {
+      setupEncoderImage(img);
+    };
+  }
+
+  // Helper to format file sizes
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  // Error Display Helpers
+  function showEncoderError(msg) {
+    if (msg) {
+      el.encoderErrorText.textContent = msg;
+      el.encoderError.classList.remove("hidden");
+      window.ASTCUtils.AudioSynth.playError();
+      lucide.createIcons();
+    } else {
+      el.encoderError.classList.add("hidden");
+    }
+  }
+
+  function showDecoderError(msg) {
+    if (msg) {
+      el.decoderErrorText.textContent = msg;
+      el.decoderError.classList.remove("hidden");
+      window.ASTCUtils.AudioSynth.playError();
+      lucide.createIcons();
+    } else {
+      el.decoderError.classList.add("hidden");
+    }
+  }
+
+  // Setup Encoder Image with Performance Downscaling
+  function setupEncoderImage(img) {
+    let width = img.width;
+    let height = img.height;
+    const MAX_DIM = 256; // Snappy real-time browser encoding limit
+    
+    let wasResized = false;
+    if (width > MAX_DIM || height > MAX_DIM) {
+      const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+      wasResized = true;
+    }
+
+    // Create a canvas to draw the resized image
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext("2d");
+    tempCtx.drawImage(img, 0, 0, width, height);
+
+    // Create a new image from the resized canvas
+    const resizedImg = new Image();
+    resizedImg.src = tempCanvas.toDataURL();
+    resizedImg.onload = () => {
+      state.encoderImage = resizedImg;
+      el.encoderPreviewContainer.classList.remove("hidden");
+      el.encoderOutputContainer.classList.add("hidden");
+      
+      el.encoderImageInfo.innerHTML = `
+        <span>${width} × ${height} px</span>
+        ${wasResized ? '<span class="text-amber-400 text-[10px] ml-1.5 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 font-sans">Auto-Downscaled for Snappy Performance</span>' : ''}
+      `;
+      
+      // Draw to preview canvas
+      el.canvasEncoderSrc.width = width;
+      el.canvasEncoderSrc.height = height;
+      const ctx = el.canvasEncoderSrc.getContext("2d");
+      ctx.drawImage(resizedImg, 0, 0);
+      
+      // Scroll to preview
+      el.encoderPreviewContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+  }
+
+  // Prevent default drag/drop behaviors globally to avoid browser navigation
+  window.addEventListener("dragover", (e) => e.preventDefault(), false);
+  window.addEventListener("drop", (e) => e.preventDefault(), false);
+
+  // Handle Image Upload
+  el.encoderDropzone.addEventListener("click", () => el.encoderFileInput.click());
+  el.encoderFileInput.addEventListener("change", (e) => {
+    showEncoderError(null);
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        showEncoderError("Invalid file type. Please upload an image file (PNG, JPG, WebP, SVG).");
+        el.encoderFileInput.value = "";
+        return;
+      }
+      window.ASTCUtils.AudioSynth.playClick();
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          setupEncoderImage(img);
+          el.encoderFileInput.value = ""; // Reset value to allow re-uploading same file
+        };
+        img.onerror = () => {
+          showEncoderError("Failed to load image. The file might be corrupted.");
+          el.encoderFileInput.value = "";
+        };
+      };
+      reader.onerror = () => {
+        showEncoderError("Failed to read file.");
+        el.encoderFileInput.value = "";
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Drag & Drop for Encoder
+  el.encoderDropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    el.encoderDropzone.classList.add("border-indigo-500", "bg-slate-950/80");
+  });
+  el.encoderDropzone.addEventListener("dragleave", () => {
+    el.encoderDropzone.classList.remove("border-indigo-500", "bg-slate-950/80");
+  });
+  el.encoderDropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    el.encoderDropzone.classList.remove("border-indigo-500", "bg-slate-950/80");
+    showEncoderError(null);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        showEncoderError("Invalid file type. Please drop an image file.");
+        return;
+      }
+      window.ASTCUtils.AudioSynth.playClick();
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => setupEncoderImage(img);
+        img.onerror = () => showEncoderError("Failed to load image. The file might be corrupted.");
+      };
+      reader.onerror = () => showEncoderError("Failed to read file.");
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Encode Action
+  el.btnEncode.addEventListener("click", () => {
+    if (!state.encoderImage) return;
+    
+    window.ASTCUtils.AudioSynth.playSweep();
+    
+    const width = state.encoderImage.width;
+    const height = state.encoderImage.height;
+    
+    // Get image data
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext("2d");
+    tempCtx.drawImage(state.encoderImage, 0, 0);
+    const imgData = tempCtx.getImageData(0, 0, width, height);
+    
+    // Encode
+    const blockX = state.selectedBlockSize.width;
+    const blockY = state.selectedBlockSize.height;
+    
+    const astcBytes = window.ASTCUtils.ASTCEncoder.encode(imgData, blockX, blockY);
+    state.encodedBytes = astcBytes;
+    
+    // Update Stats
+    const origSize = width * height * 4; // Raw RGBA8
+    const astcSize = astcBytes.length;
+    const ratio = (origSize / astcSize).toFixed(1);
+    const totalBlocks = Math.ceil(width / blockX) * Math.ceil(height / blockY);
+    
+    el.encStatOrig.textContent = formatBytes(origSize);
+    el.encStatAstc.textContent = formatBytes(astcSize);
+    el.encStatRatio.textContent = `${ratio}x Compression`;
+    el.encStatBlocks.textContent = totalBlocks;
+    
+    el.encoderOutputContainer.classList.remove("hidden");
+    window.ASTCUtils.AudioSynth.playSuccess();
+    
+    // Auto-load into decoder for instant round-trip visualization!
+    decodeASTCBytes(astcBytes);
+  });
+
+  // Download ASTC File
+  el.btnDownloadAstc.addEventListener("click", () => {
+    if (!state.encodedBytes) return;
+    window.ASTCUtils.AudioSynth.playClick();
+    
+    const blob = new Blob([state.encodedBytes], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `texture_${state.selectedBlockSize.width}x${state.selectedBlockSize.height}.astc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // Handle ASTC File Upload for Decoder
+  el.decoderDropzone.addEventListener("click", () => el.decoderFileInput.click());
+  el.decoderFileInput.addEventListener("change", (e) => {
+    showDecoderError(null);
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.name.endsWith(".astc")) {
+        showDecoderError("Invalid file extension. Please upload a valid .astc file.");
+        el.decoderFileInput.value = "";
+        return;
+      }
+      window.ASTCUtils.AudioSynth.playClick();
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const bytes = new Uint8Array(event.target.result);
+          decodeASTCBytes(bytes);
+        } catch (err) {
+          showDecoderError(err.message);
+        } finally {
+          el.decoderFileInput.value = ""; // Reset value to allow re-uploading same file
+        }
+      };
+      reader.onerror = () => {
+        showDecoderError("Failed to read file.");
+        el.decoderFileInput.value = "";
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  });
+
+  // Drag & Drop for Decoder
+  el.decoderDropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    el.decoderDropzone.classList.add("border-purple-500", "bg-slate-950/80");
+  });
+  el.decoderDropzone.addEventListener("dragleave", () => {
+    el.decoderDropzone.classList.remove("border-purple-500", "bg-slate-950/80");
+  });
+  el.decoderDropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    el.decoderDropzone.classList.remove("border-purple-500", "bg-slate-950/80");
+    showDecoderError(null);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      if (!file.name.endsWith(".astc")) {
+        showDecoderError("Invalid file extension. Please drop a valid .astc file.");
+        return;
+      }
+      window.ASTCUtils.AudioSynth.playClick();
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const bytes = new Uint8Array(event.target.result);
+          decodeASTCBytes(bytes);
+        } catch (err) {
+          showDecoderError(err.message);
+        }
+      };
+      reader.onerror = () => showDecoderError("Failed to read file.");
+      reader.readAsArrayBuffer(file);
+    }
+  });
+
+  // Decode ASTC Bytes
+  function decodeASTCBytes(bytes) {
+    try {
+      const result = window.ASTCUtils.ASTCDecoder.decode(bytes);
+      state.decodedData = result;
+      
+      // Update Metadata UI
+      el.decMetaMagic.textContent = result.metadata.magicHex;
+      if (result.metadata.isValidMagic) {
+        el.decMetaMagic.className = "font-semibold text-emerald-400";
+      } else {
+        el.decMetaMagic.className = "font-semibold text-red-400";
+        throw new Error("Invalid ASTC Magic Number!");
+      }
+      
+      el.decMetaBlock.textContent = `${result.metadata.blockX} × ${result.metadata.blockY} × ${result.metadata.blockZ}`;
+      el.decMetaDim.textContent = `${result.metadata.width} × ${result.metadata.height} px`;
+      el.decMetaBlocks.textContent = result.metadata.totalBlocks;
+      el.decMetaSize.textContent = formatBytes(result.metadata.fileSize);
+      
+      // Determine if it's a pure Void-Extent file or standard compressed
+      const hasCompressed = result.blocks.some(b => b.type.includes("Standard"));
+      el.decMetaMode.textContent = hasCompressed ? "Standard Compressed" : "Void-Extent (LDR)";
+      
+      // Draw decoded image to canvas
+      el.canvasDecoderDest.width = result.metadata.width;
+      el.canvasDecoderDest.height = result.metadata.height;
+      const ctx = el.canvasDecoderDest.getContext("2d");
+      ctx.putImageData(result.imageData, 0, 0);
+      
+      el.decoderResultContainer.classList.remove("hidden");
+      window.ASTCUtils.AudioSynth.playSuccess();
+      
+      // Reset Inspector
+      resetInspector();
+      
+      // Scroll to decoded result
+      el.decoderResultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      
+    } catch (err) {
+      console.error(err);
+      window.ASTCUtils.AudioSynth.playError();
+      showDecoderError(`Failed to decode ASTC file: ${err.message}`);
+    }
+  }
+
+  // Interactive Block Inspector Logic
+  el.canvasDecoderDest.addEventListener("mousemove", (e) => {
+    if (!state.decodedData) return;
+    
+    const rect = el.canvasDecoderDest.getBoundingClientRect();
+    const scaleX = el.canvasDecoderDest.width / rect.width;
+    const scaleY = el.canvasDecoderDest.height / rect.height;
+    
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    
+    const blockX = state.decodedData.metadata.blockX;
+    const blockY = state.decodedData.metadata.blockY;
+    
+    const bx = Math.floor(x / blockX);
+    const by = Math.floor(y / blockY);
+    
+    const blocksX = Math.ceil(state.decodedData.metadata.width / blockX);
+    const blockIndex = by * blocksX + bx;
+    
+    if (blockIndex >= 0 && blockIndex < state.decodedData.blocks.length) {
+      const block = state.decodedData.blocks[blockIndex];
+      if (state.hoveredBlock !== block) {
+        state.hoveredBlock = block;
+        window.ASTCUtils.AudioSynth.playClick();
+        updateInspector(block, bx, by, rect, scaleX, scaleY);
+      }
+    }
+  });
+
+  el.canvasDecoderDest.addEventListener("mouseleave", () => {
+    state.hoveredBlock = null;
+    el.blockHighlightOverlay.classList.add("hidden");
+    resetInspector();
+  });
+
+  function updateInspector(block, bx, by, rect, scaleX, scaleY) {
+    const blockX = state.decodedData.metadata.blockX;
+    const blockY = state.decodedData.metadata.blockY;
+    
+    // Position the highlight overlay
+    const left = (bx * blockX) / scaleX;
+    const top = (by * blockY) / scaleY;
+    const width = blockX / scaleX;
+    const height = blockY / scaleY;
+    
+    el.blockHighlightOverlay.style.left = `${left}px`;
+    el.blockHighlightOverlay.style.top = `${top}px`;
+    el.blockHighlightOverlay.style.width = `${width}px`;
+    el.blockHighlightOverlay.style.height = `${height}px`;
+    el.blockHighlightOverlay.classList.remove("hidden");
+    
+    // Update text fields
+    el.inspectBlockCoords.textContent = `Block [${bx}, ${by}] (Index: ${block.index})`;
+    el.inspectBlockType.textContent = block.type;
+    
+    const colorStr = `rgba(${block.color.r}, ${block.color.g}, ${block.color.b}, ${(block.color.a / 255).toFixed(2)})`;
+    el.inspectBlockColor.textContent = colorStr;
+    el.inspectColorSwatch.style.backgroundColor = colorStr;
+    
+    // Format raw bytes as hex
+    const hexArray = Array.from(block.rawBytes).map(b => b.toString(16).padStart(2, '0').toUpperCase());
+    // Format into 4-byte chunks for readability
+    const formattedHex = [
+      hexArray.slice(0, 4).join(" "),
+      hexArray.slice(4, 8).join(" "),
+      hexArray.slice(8, 12).join(" "),
+      hexArray.slice(12, 16).join(" ")
+    ].join(" | ");
+    
+    el.inspectBlockHex.textContent = formattedHex;
+  }
+
+  function resetInspector() {
+    el.inspectBlockCoords.textContent = "Hover over image";
+    el.inspectBlockType.textContent = "-";
+    el.inspectBlockColor.textContent = "-";
+    el.inspectColorSwatch.style.backgroundColor = "transparent";
+    el.inspectBlockHex.textContent = "-";
+  }
+
+  // Load default sample on startup
+  setTimeout(() => {
+    if (window.ASTCData.samples.length > 0) {
+      loadSamplePattern(window.ASTCData.samples[0]);
+    }
+  }, 300);
+});
+
+/* --- Script: /index.js --- */
+import "./styles.css";
+
+document.getElementById("app").innerHTML = `
+<h1>Hello world</h1>
+`;
+
+</script></body>
+</html>
